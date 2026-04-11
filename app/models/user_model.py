@@ -2,7 +2,7 @@
 # Table for Users (Email, Hashed Password, Role) for authentication
 
 from decimal import Clamped
-import email
+
 import enum
 from app.database import Base
 from sqlalchemy.sql import func

@@ -5,20 +5,20 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import DATABASE_URL
 
-# 1. Create the Connection Engine
+
 # This initializes the connection pool to PostgreSQL
 engine = create_engine(DATABASE_URL)
 
 
-# 2. Create the Session Factory
+
 # Each request will create a new "SessionLocal" instance
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 3. Create the Base Class
-# All your database models (User, Loan) must inherit from this class
+
+# All database models (User, Loan) must inherit from this class
 Base = declarative_base()
 
-# 4. The Dependency (Critical for FastAPI)
+
 # This function creates a fresh session for a request and closes it immediately after
 def get_db():
     db = SessionLocal()
