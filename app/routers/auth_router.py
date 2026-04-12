@@ -16,6 +16,7 @@ router=APIRouter(
 
 db_dependency=Annotated[Session,Depends(get_db)]
 
+
 @router.post("/",status_code=status.HTTP_201_CREATED)
 async def create_user(db: db_dependency,create_user_request: auth_schema.UserCreate):
     existing_user=db.query(User).filter(User.email == create_user_request.email).first()
@@ -34,3 +35,6 @@ async def create_user(db: db_dependency,create_user_request: auth_schema.UserCre
     db.commit()
     db.refresh(create_user_model)
     return {"message": "User created successfully"}
+
+
+
