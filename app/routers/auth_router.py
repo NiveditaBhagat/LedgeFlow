@@ -21,7 +21,7 @@ db_dependency=Annotated[Session,Depends(get_db)]
 async def create_user(db: db_dependency,create_user_request: auth_schema.UserCreate):
     existing_user=db.query(User).filter(User.email == create_user_request.email).first()
     if existing_user:
-        return HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_pass=bcrypt_context.hash(create_user_request.password)
 
