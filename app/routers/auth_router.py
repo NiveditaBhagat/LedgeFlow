@@ -1,9 +1,10 @@
+from datetime import timedelta
 from typing import Annotated
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends,HTTPException 
 from app.database import get_db
 from starlette import status
-from app.core.security import bcrypt_context
+from app.core.security import authenticate_user, bcrypt_context, create_access_token
 from app.models.user_model import User
 from app.schemas import auth_schema
 
@@ -38,3 +39,10 @@ async def create_user(db: db_dependency,create_user_request: auth_schema.UserCre
 
 
 
+@router.post("/token",response_model=auth_schema.Token)
+async def login_for_access_token(db: db_dependency,login_request: auth_schema.UserLogin):
+    user=authenticate_user(login_request.email,login_request.password,db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token=create_access_token(user.email,user.id,user.role,timedelta(minutes=60))
+    return{'access_token':token,'token_type':'bearer'}
