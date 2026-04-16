@@ -50,7 +50,3 @@ class LoanApplicationRequest(BaseModel):
     financial_profile: FinancialProfile
     loan_request: LoanRequest
 
-
-@router.post("/")
-async def root():
-    return {"message": "Hello World55 "}
