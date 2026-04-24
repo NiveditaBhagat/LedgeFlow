@@ -53,3 +53,5 @@ async def get_user_profile(db: db_dependency, current_user: user_dependency):
         raise HTTPException(status_code=404, detail="Profile not found")
     
     return profile
+
+
