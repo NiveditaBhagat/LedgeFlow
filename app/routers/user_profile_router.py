@@ -45,4 +45,11 @@ async def create_user_profile(
 
     return new_user_profile
 
+@router.get("/get_user_profile", response_model=UserProfileResponse)
+async def get_user_profile(db: db_dependency, current_user: user_dependency):
+    profile=db.query(UserProfile).filter(UserProfile.user_id==current_user.id).first()
 
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    return profile
