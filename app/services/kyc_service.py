@@ -7,7 +7,7 @@ def mock_verify_pan(pan_number: str):
     - Else → INVALID
     """
 
-    if pan_number.startswith("A"):
+    if pan_number.startswith("D"):
         return {
             "status": "VALID",
             "message": "PAN verified successfully (mock)"
