@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends,HTTPException 
 from app.models.user_profile_model import UserProfile,KYCStatus
 from app.models.user_model import User,UserRole
-from app.schemas.user_profile_schema import UserProfileCreate,UserProfileResponse
+from app.schemas.user_profile_schema import UserProfileCreate,UserProfileResponse, UserProfileUpdate
 
 
 
@@ -55,3 +55,33 @@ async def get_user_profile(db: db_dependency, current_user: user_dependency):
     return profile
 
 
+@router.patch("/update")
+def update_profile(
+    profile_data: UserProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    db_profile = db.query(UserProfile).filter(
+        UserProfile.user_id == current_user.id
+    ).first()
+
+    if not db_profile:
+        raise HTTPException(404, "Profile not found")
+
+    update_data = profile_data.model_dump(exclude_unset=True)
+
+    kyc_sensitive_fields = ["full_name", "mobile", "employment_type"]
+
+    for key, value in update_data.items():
+        setattr(db_profile, key, value)
+
+    if any(field in update_data for field in kyc_sensitive_fields):
+        # Only reset if it was previously VERIFIED to avoid unnecessary updates
+        if db_profile.kyc_status == KYCStatus.VERIFIED:
+            db_profile.kyc_status = KYCStatus.PENDING 
+
+
+    db.commit()
+    db.refresh(db_profile)
+
+    return db_profile

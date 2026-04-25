@@ -1,3 +1,4 @@
+#The Pydantic Classes
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from decimal import Decimal
@@ -67,3 +68,23 @@ class UserProfileResponse(UserProfileBase):
 
     class Config:
         from_attributes = True
+
+
+# Schema for profile update (Output)
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=3, max_length=100)
+
+    mobile: Optional[str] = Field(
+        None,
+        pattern=r"^[6-9]\d{9}$"
+    )
+
+    organization_name: Optional[str] = None
+
+    monthly_income: Optional[Decimal] = Field(None, gt=0)
+
+    existing_monthly_obligations: Optional[Decimal] = Field(None, ge=0)
+
+    employment_type: Optional[EmploymentType] = None
+
+    

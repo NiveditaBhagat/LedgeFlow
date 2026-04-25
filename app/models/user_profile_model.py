@@ -1,3 +1,4 @@
+# Database Tables (SQLAlchemy Models)
 import enum
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Numeric, Enum
 from sqlalchemy.sql import func
