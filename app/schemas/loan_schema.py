@@ -21,6 +21,7 @@ class LoanType(str, Enum):
     HOME = "HOME"
     VEHICLE = "VEHICLE"
     GOLD = "GOLD"
+    BUSINESS="BUSINESS"
 
 
 class BorrowerInfo(BaseModel):
