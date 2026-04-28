@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends,HTTPException
 from app.models.user_profile_model import UserProfile,KYCStatus
 from app.models.user_model import User,UserRole
 from app.schemas.user_profile_schema import UserProfileCreate,UserProfileResponse, UserProfileUpdate
-
+from starlette import status
 
 
 router=APIRouter(
@@ -19,7 +19,7 @@ db_dependency=Annotated[Session,Depends(get_db)]
 user_dependency=Annotated[dict,Depends(get_current_user)]
 
 
-@router.post("/",response_model=UserProfileResponse)
+@router.post("/",status_code=status.HTTP_201_CREATED,response_model=UserProfileResponse)
 async def create_user_profile(
     profile_data: UserProfileCreate,
     db: db_dependency,
@@ -47,6 +47,8 @@ async def create_user_profile(
 
 @router.get("/get_user_profile", response_model=UserProfileResponse)
 async def get_user_profile(db: db_dependency, current_user: user_dependency):
+    if current_user.role !=UserRole.BORROWER:
+        raise HTTPException(status_code=403, detail="Access denied. Only BORROWER accounts can access profile.")
     profile=db.query(UserProfile).filter(UserProfile.user_id==current_user.id).first()
 
     if not profile:
@@ -61,6 +63,9 @@ def update_profile(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
+    if current_user.role !=UserRole.BORROWER:
+        raise HTTPException(status_code=403, detail="Access denied. Only BORROWER accounts can update a profile.")
+    
     db_profile = db.query(UserProfile).filter(
         UserProfile.user_id == current_user.id
     ).first()

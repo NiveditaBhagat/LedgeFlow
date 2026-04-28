@@ -1,7 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum, Boolean, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Boolean, Text, Numeric
 from sqlalchemy.sql import func
 import enum
-
 from app.database import Base
 
 
@@ -19,45 +18,39 @@ class LoanApplication(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    #  user link
+    #  User reference
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
-    #  borrower snapshot (don’t rely only on user table)
+    #  Minimal snapshot (for UI / audit)
     full_name = Column(String, nullable=False)
-    email = Column(String, nullable=False)
     mobile = Column(String, nullable=False)
-    pan_number = Column(String, nullable=False)
-  
 
-    #  Avoid storing Aadhaar raw (skip or encrypt if needed)
-
-    #  loan request
+    #  Loan request
     loan_type = Column(String, nullable=False)
-    requested_amount = Column(Float, nullable=False)
+    requested_amount = Column(Numeric(12, 2), nullable=False)
     tenure_months = Column(Integer, nullable=False)
     loan_purpose = Column(String, nullable=True)
     interest_rate_type = Column(String, nullable=False)
 
-    #  financial profile
-    monthly_income = Column(Float, nullable=False)
+    #  Financial snapshot (at time of application)
+    monthly_income = Column(Numeric(12, 2), nullable=False)
     employment_type = Column(String, nullable=False)
     organization_name = Column(String, nullable=True)
-    existing_monthly_obligations = Column(Float, default=0)
+    existing_monthly_obligations = Column(Numeric(12, 2), default=0)
 
-    #  credit decision inputs/outputs
+    #  Decision fields (filled later)
     credit_score = Column(Integer, nullable=True)
-    approved_amount = Column(Float, nullable=True)
-    interest_rate = Column(Float, nullable=True)
+    approved_amount = Column(Numeric(12, 2), nullable=True)
+    interest_rate = Column(Numeric(5, 2), nullable=True)
 
-    #  consent tracking (VERY IMPORTANT)
+    #  Consent (for CIBIL check)
     consent_given = Column(Boolean, nullable=False)
-    consent_timestamp = Column(DateTime(timezone=True), nullable=True)
+    consent_timestamp = Column(DateTime(timezone=True), nullable=False)
 
-    #  lifecycle
+    #  Status lifecycle
     status = Column(Enum(LoanStatus), default=LoanStatus.INITIATED, nullable=False)
     rejection_reason = Column(Text, nullable=True)
 
-
-    #  timestamps
+    #  Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
