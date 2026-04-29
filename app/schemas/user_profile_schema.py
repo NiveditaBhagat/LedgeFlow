@@ -1,5 +1,5 @@
 #The Pydantic Classes
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator,model_validator
 from typing import Optional
 from decimal import Decimal
 from datetime import datetime
@@ -46,6 +46,11 @@ class UserProfileBase(BaseModel):
     monthly_income: Decimal = Field(..., gt=0)
     existing_monthly_obligations: Decimal = Field(default=Decimal("0.0"), ge=0)
 
+    address_line_1: str
+    address_line_2: Optional[str] = None
+    city: str
+    state: str
+    pincode: str
     # Ensure PAN is uppercase
     @field_validator("pan_number")
     @classmethod
@@ -70,7 +75,6 @@ class UserProfileResponse(UserProfileBase):
         from_attributes = True
 
 
-# Schema for profile update (Output)
 class UserProfileUpdate(BaseModel):
     full_name: Optional[str] = Field(None, min_length=3, max_length=100)
 
@@ -82,9 +86,23 @@ class UserProfileUpdate(BaseModel):
     organization_name: Optional[str] = None
 
     monthly_income: Optional[Decimal] = Field(None, gt=0)
-
     existing_monthly_obligations: Optional[Decimal] = Field(None, ge=0)
 
     employment_type: Optional[EmploymentType] = None
+    address_line_1: str
+    address_line_2: Optional[str] = None
+    city: str
+    state: str
+    pincode: str
+
+    @model_validator(mode="after")
+    def validate_employment(cls, values):
+        emp_type = values.employment_type
+        org = values.organization_name
+
+        if emp_type == "SALARIED" and not org:
+            raise ValueError("organization_name is required for salaried users")
+
+        return values
 
     

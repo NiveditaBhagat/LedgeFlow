@@ -75,16 +75,19 @@ def update_profile(
 
     update_data = profile_data.model_dump(exclude_unset=True)
 
-    kyc_sensitive_fields = ["full_name", "mobile", "employment_type"]
+
 
     for key, value in update_data.items():
         setattr(db_profile, key, value)
 
-    if any(field in update_data for field in kyc_sensitive_fields):
-        # Only reset if it was previously VERIFIED to avoid unnecessary updates
-        if db_profile.kyc_status == KYCStatus.VERIFIED:
-            db_profile.kyc_status = KYCStatus.PENDING 
+    # if any(field in update_data for field in kyc_sensitive_fields):
+    #     # Only reset if it was previously VERIFIED to avoid unnecessary updates
+    #     if db_profile.kyc_status == KYCStatus.VERIFIED:
+    #         db_profile.kyc_status = KYCStatus.PENDING 
 
+    #  Reset KYC if ANY update happens
+    if update_data and db_profile.kyc_status == KYCStatus.VERIFIED:
+        db_profile.kyc_status = KYCStatus.PENDING
 
     db.commit()
     db.refresh(db_profile)

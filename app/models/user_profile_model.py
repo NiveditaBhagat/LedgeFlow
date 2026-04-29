@@ -42,6 +42,12 @@ class UserProfile(Base):
     # KYC Status
     kyc_status = Column(Enum(KYCStatus), default=KYCStatus.PENDING)
 
+    address_line_1 = Column(String, nullable=False)
+    address_line_2 = Column(String, nullable=True)
+    city = Column(String, nullable=False)
+    state = Column(String, nullable=False)
+    pincode = Column(String, nullable=False)
+
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

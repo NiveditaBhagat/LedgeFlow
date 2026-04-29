@@ -43,6 +43,13 @@ class LoanApplication(Base):
     approved_amount = Column(Numeric(12, 2), nullable=True)
     interest_rate = Column(Numeric(5, 2), nullable=True)
 
+    # 🏠 Property / Asset Address (loan-specific)
+    property_address_line_1 = Column(String, nullable=True)
+    property_address_line_2 = Column(String, nullable=True)
+    property_city = Column(String, nullable=True)
+    property_state = Column(String, nullable=True)
+    property_pincode = Column(String, nullable=True)
+
     #  Consent (for CIBIL check)
     consent_given = Column(Boolean, nullable=False)
     consent_timestamp = Column(DateTime(timezone=True), nullable=False)

@@ -18,11 +18,15 @@ db_dependency=Annotated[Session,Depends(get_db)]
 user_dependency=Annotated[dict,Depends(get_current_user)]
 
 
-@router.post("/verify-kyc")
-async def verify_kyc(db:db_dependency, current_user:user_dependency):
+@router.post("/verify-kyc/{user_id}")
+async def verify_kyc(user_id: int,db:db_dependency, current_user:user_dependency):
 
+      #  Only CREDIT / OPS allowed
+    if current_user.role not in [UserRole.CREDIT, UserRole.OPS]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
     profile = db.query(UserProfile).filter(
-        UserProfile.user_id == current_user.id
+        UserProfile.user_id == user_id
     ).first()
 
     if not profile:
@@ -42,8 +46,10 @@ async def verify_kyc(db:db_dependency, current_user:user_dependency):
         profile.kyc_status = KYCStatus.REJECTED
 
     db.commit()
+    db.refresh(profile)
 
     return {
+        "user_id": user_id,
         "kyc_status": profile.kyc_status,
         "provider_response": result
     }
