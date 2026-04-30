@@ -12,8 +12,8 @@ from app.schemas.loan_schema import LoanApplicationRequest
 from starlette import status
 
 router=APIRouter(
-    prefix='/loan',
-    tags=['loan']
+    prefix='/loans',
+    tags=['Loans']
 )
 
 db_dependency=Annotated[Session,Depends(get_db)]
@@ -27,3 +27,8 @@ async def apply_loan( loan_request: LoanApplicationRequest,db: db_dependency,cur
             status_code=403,
             detail="Only borrowers can apply for loans"
         )
+    if not loan_request.consent_given:
+        raise HTTPException(
+            status_code=400, detail="Consent is required to proceed"
+        )
+    
