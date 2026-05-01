@@ -96,3 +96,6 @@ async def apply_loan( loan_request: LoanApplicationRequest,db: db_dependency,cur
         loan_id=loan.id
     )
     
+
+@router.get("/{loan_id}")
+async def get_loan_app():
