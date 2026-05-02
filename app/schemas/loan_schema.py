@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional
 from decimal import Decimal
@@ -125,7 +127,7 @@ class LoanResponse(BaseModel):
     estimated_property_value: Optional[Decimal]
 
     consent_given: bool
-    consent_timestamp: str
+    consent_timestamp: datetime
 
     credit_score: Optional[int]
     foir: Optional[Decimal]
@@ -136,8 +138,25 @@ class LoanResponse(BaseModel):
     status: LoanStatus
     rejection_reason: Optional[str]
 
-    created_at: Optional[str]
-    updated_at: Optional[str]
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+class LoanSummaryResponse(BaseModel):
+    loan_id: int
+    status: str
+    requested_amount: Decimal
+    approved_amount: Optional[Decimal]
+
+    credit_score: Optional[int]
+    foir: Optional[Decimal]
+    emi: Optional[Decimal]
+
+    decision: str
+    reason: Optional[str]
 
     class Config:
         from_attributes = True
