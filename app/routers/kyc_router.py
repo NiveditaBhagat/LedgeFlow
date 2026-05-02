@@ -22,7 +22,7 @@ user_dependency=Annotated[dict,Depends(get_current_user)]
 async def verify_kyc(user_id: int,db:db_dependency, current_user:user_dependency):
 
       #  Only CREDIT / OPS allowed
-    if current_user.role not in [UserRole.CREDIT, UserRole.OPS]:
+    if current_user.role not in [UserRole.ADMIN, UserRole.OPS]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     profile = db.query(UserProfile).filter(
