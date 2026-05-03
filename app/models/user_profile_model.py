@@ -3,6 +3,7 @@ import enum
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Numeric, Enum
 from sqlalchemy.sql import func
 from app.database import Base
+from sqlalchemy import Date
 
 
 # KYC Status Enum
@@ -29,6 +30,7 @@ class UserProfile(Base):
     # Personal Info
     full_name = Column(String, nullable=False)
     mobile = Column(String, nullable=False, unique=True)
+    date_of_birth = Column(Date, nullable=False)
     pan_number = Column(String, nullable=False, unique=True)
     aadhaar_number = Column(String, nullable=False, unique=True)
 

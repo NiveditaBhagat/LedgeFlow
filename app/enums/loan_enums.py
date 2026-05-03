@@ -25,3 +25,28 @@ class LoanStatus(str, enum.Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     DISBURSED = "DISBURSED"
+
+
+
+LOAN_RULES = {
+    LoanType.PERSONAL: {
+        "min_credit_score": 650,
+        "max_foir": 50,
+    },
+    LoanType.HOME: {
+        "min_credit_score": 700,
+        "max_foir": 45,
+    },
+    LoanType.BUSINESS: {
+        "min_credit_score": 680,
+        "max_foir": 55,
+    },
+    LoanType.VEHICLE: {
+        "min_credit_score": 640,
+        "max_foir": 50,
+    },
+    LoanType.GOLD: {
+        "min_credit_score": 600,
+        "max_foir": None,  # not required
+    },
+}

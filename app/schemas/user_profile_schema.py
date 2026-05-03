@@ -2,7 +2,7 @@
 from pydantic import BaseModel, Field, field_validator,model_validator
 from typing import Optional
 from decimal import Decimal
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 
 
@@ -27,7 +27,7 @@ class UserProfileBase(BaseModel):
         pattern=r"^[6-9]\d{9}$",
         description="10-digit Indian mobile number"
     )
-
+    date_of_birth: date
     pan_number: str = Field(
         ...,
         pattern=r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$",
