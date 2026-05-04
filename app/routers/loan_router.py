@@ -13,6 +13,8 @@ from starlette import status
 from app.enums.loan_enums import  LoanStatus
 from datetime import datetime
 
+from app.services.loan_services import process_loan_logic
+
 router=APIRouter(
     prefix='/loans',
     tags=['Loans']
@@ -169,7 +171,7 @@ def get_loan_summary(
     if not loan:
         raise HTTPException(status_code=404, detail="Loan not found")
 
-    # 🔒 Access control (same as get loan)
+    #  Access control (same as get loan)
     if current_user.role == UserRole.BORROWER:
         if loan.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Access denied")
@@ -177,7 +179,7 @@ def get_loan_summary(
     elif current_user.role not in [UserRole.ADMIN, UserRole.CREDIT]:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    # 🧠 Decision logic (human-readable)
+    # Decision logic (human-readable)
     if loan.status == LoanStatus.APPROVED:
         decision = "APPROVED"
         reason = None
@@ -193,7 +195,7 @@ def get_loan_summary(
         status=loan.status,
         requested_amount=loan.requested_amount,
         approved_amount=loan.approved_amount,
-
+        interest_rate= loan.interest_rate,
         credit_score=loan.credit_score,
         foir=loan.foir,
         emi=loan.emi,
@@ -201,3 +203,38 @@ def get_loan_summary(
         decision=decision,
         reason=reason
     )
+
+
+@router.post("/{loan_id}/process")
+def process_loan(
+    loan_id: int,
+    db: db_dependency,
+    current_user: user_dependency
+):
+    #  Only CREDIT
+    if current_user.role != UserRole.CREDIT:
+        raise HTTPException(403, "Only CREDIT can process loans")
+
+    loan = db.query(LoanApplication).filter(
+        LoanApplication.id == loan_id
+    ).first()
+
+    if not loan:
+        raise HTTPException(404, "Loan not found")
+
+    if loan.status not in [LoanStatus.INITIATED, LoanStatus.PENDING]:
+        raise HTTPException(400, "Loan already processed")
+
+    #  Process
+    process_loan_logic(loan, db)
+
+    db.commit()
+    db.refresh(loan)
+
+    return {
+        "loan_id": loan.id,
+        "status": loan.status,
+        "emi": loan.emi,
+        "foir": loan.foir,
+        "credit_score": loan.credit_score
+    }

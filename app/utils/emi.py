@@ -8,7 +8,7 @@ def calculate_emi(
 ) -> Decimal:
    
 
-    # 🔒 Validations
+    # Validations
     if principal <= 0:
         raise ValueError("Principal must be greater than 0")
 
@@ -30,3 +30,22 @@ def calculate_emi(
     emi = (P * r * one_plus_r_pow_n) / (one_plus_r_pow_n - Decimal("1"))
 
     return emi.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+
+
+
+def calculate_foir(
+    monthly_income: Decimal,
+    existing_obligations: Decimal,
+    emi: Decimal
+) -> Decimal:
+
+    if monthly_income <= 0:
+        raise ValueError("Income must be greater than 0")
+
+    total_obligation = existing_obligations + emi
+
+    foir = (total_obligation / monthly_income) * Decimal("100")
+
+    return foir.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

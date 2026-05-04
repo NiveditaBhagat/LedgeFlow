@@ -82,7 +82,7 @@ class UserProfileUpdate(BaseModel):
         None,
         pattern=r"^[6-9]\d{9}$"
     )
-
+    date_of_birth: date
     organization_name: Optional[str] = None
 
     monthly_income: Optional[Decimal] = Field(None, gt=0)

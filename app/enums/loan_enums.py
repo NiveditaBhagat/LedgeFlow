@@ -50,3 +50,11 @@ LOAN_RULES = {
         "max_foir": None,  # not required
     },
 }
+
+INTEREST_RATES = {
+    LoanType.PERSONAL: 14.0,
+    LoanType.HOME: 8.5,
+    LoanType.VEHICLE: 10.0,
+    LoanType.GOLD: 11.0,
+    LoanType.BUSINESS: 13.0,
+}
