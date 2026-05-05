@@ -1,4 +1,5 @@
 from decimal import Decimal, ROUND_HALF_UP
+from app.enums.loan_enums import LoanType
 
 
 def calculate_emi(
@@ -49,3 +50,7 @@ def calculate_foir(
     foir = (total_obligation / monthly_income) * Decimal("100")
 
     return foir.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+
+
