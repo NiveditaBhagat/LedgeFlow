@@ -222,13 +222,14 @@ def process_loan(
     if not loan:
         raise HTTPException(404, "Loan not found")
 
-    if loan.status not in [LoanStatus.INITIATED, LoanStatus.PENDING]:
+    if loan.status !=LoanStatus.INITIATED:
         if loan.status == LoanStatus.UNDER_REVIEW:
             raise HTTPException(400, "Loan is already under review")
         else:
             raise HTTPException(400, "Loan already processed")
 
     #  Process
+    loan.status = LoanStatus.UNDER_REVIEW
     process_loan_logic(loan, db)
 
   

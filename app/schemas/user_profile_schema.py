@@ -20,7 +20,7 @@ class EmploymentType(str, Enum):
 
 # Base Schema (shared fields)
 class UserProfileBase(BaseModel):
-    full_name: str = Field(..., min_length=3, max_length=100)
+    full_name: str = Field(..., min_length=3, max_length=100,pattern=r"^[A-Za-z ]+$")
 
     mobile: str = Field(
         ...,
