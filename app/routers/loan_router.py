@@ -1,10 +1,16 @@
 #API endpoints
+import uuid
+
+from sqlalchemy import Transaction
+
 from app.database import get_db
 from app.core.security import get_current_user
 from datetime import timedelta
 from typing import Annotated
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends,HTTPException 
+from app.models.bank_details_model import UserBankDetails, VerificationStatus
+from app.models.transaction_model import TransactionType
 from app.models.user_profile_model import UserProfile,KYCStatus
 from app.models.loan_application_model import LoanApplication
 from app.models.user_model import UserRole
@@ -222,11 +228,21 @@ def process_loan(
     if not loan:
         raise HTTPException(404, "Loan not found")
 
-    if loan.status !=LoanStatus.INITIATED:
-        if loan.status == LoanStatus.UNDER_REVIEW:
-            raise HTTPException(400, "Loan is already under review")
-        else:
-            raise HTTPException(400, "Loan already processed")
+    # Status checks
+    if loan.status == LoanStatus.UNDER_REVIEW:
+        raise HTTPException(400, "Loan is already under review")
+
+    elif loan.status == LoanStatus.REJECTED:
+        raise HTTPException(400, "Loan is already rejected")
+
+    elif loan.status == LoanStatus.APPROVED:
+        raise HTTPException(400, "Loan already approved")
+
+    elif loan.status == LoanStatus.DISBURSED:
+        raise HTTPException(400, "Loan already disbursed")
+
+    elif loan.status != LoanStatus.INITIATED:
+        raise HTTPException(400, "Invalid loan status")
 
     #  Process
     loan.status = LoanStatus.UNDER_REVIEW
@@ -239,4 +255,116 @@ def process_loan(
         "emi": loan.emi,
         "foir": loan.foir,
         "credit_score": loan.credit_score
+    }
+
+
+@router.post("/{loan_id}/link-bank")
+def link_bank_to_loan(
+    loan_id: int,
+    bank_id: int,
+    db: db_dependency,
+    current_user: user_dependency
+):
+    # Only borrower
+    if current_user.role != UserRole.BORROWER:
+        raise HTTPException(403, "Only borrower can link bank")
+
+    # Fetch loan
+    loan = db.query(LoanApplication).filter(
+        LoanApplication.id == loan_id
+    ).first()
+
+    if not loan:
+        raise HTTPException(404, "Loan not found")
+
+    # Ownership check
+    if loan.user_id != current_user.id:
+        raise HTTPException(403, "Access denied")
+
+    # Only approved loans
+    if loan.status != LoanStatus.APPROVED:
+        raise HTTPException(400, "Loan must be approved before linking bank")
+
+    # Fetch bank
+    bank = db.query(UserBankDetails).filter(
+        UserBankDetails.id == bank_id
+    ).first()
+
+    if not bank:
+        raise HTTPException(404, "Bank not found")
+
+    # Ownership check
+    if bank.user_id != current_user.id:
+        raise HTTPException(403, "Access denied")
+
+    # Must be verified
+    if bank.verification_status != VerificationStatus.VERIFIED:
+        raise HTTPException(400, "Bank must be verified")
+
+    # Link bank
+    loan.bank_id = bank.id
+
+    db.commit()
+    db.refresh(loan)
+
+    return {
+        "message": "Bank linked successfully",
+        "loan_id": loan.id,
+        "bank_id": bank.id
+    }
+
+
+@router.post("/{loan_id}/disburse")
+def disburse_loan(
+    loan_id: int,
+    db: db_dependency,
+    current_user: user_dependency
+):
+    # Only CREDIT / ADMIN
+    if current_user.role not in [UserRole.OPS, UserRole.ADMIN]:
+        raise HTTPException(403, "Only OPS/ADMIN can disburse")
+
+    loan = db.query(LoanApplication).filter(
+        LoanApplication.id == loan_id
+    ).first()
+
+    if not loan:
+        raise HTTPException(404, "Loan not found")
+
+    # Must be approved
+    if loan.status != LoanStatus.APPROVED:
+        raise HTTPException(400, "Loan not approved")
+
+    # Must have bank linked
+    if not loan.bank_id:
+        raise HTTPException(400, "Bank not linked")
+
+    # Fetch bank
+    bank = db.query(UserBankDetails).filter(
+        UserBankDetails.id == loan.bank_id
+    ).first()
+
+    if bank.verification_status != VerificationStatus.VERIFIED:
+        raise HTTPException(400, "Bank not verified")
+
+    # Create transaction
+    txn = Transaction(
+        loan_id=loan.id,
+        user_id=loan.user_id,
+        amount=loan.approved_amount,
+        transaction_type=TransactionType.DISBURSEMENT,
+        reference_id="TXN_" + str(uuid.uuid4())[:8]
+    )
+
+    db.add(txn)
+
+    # Update loan
+    loan.status = LoanStatus.DISBURSED
+
+    db.commit()
+
+    return {
+        "message": "Loan disbursed successfully",
+        "loan_id": loan.id,
+        "transaction_id": txn.reference_id
     }

@@ -63,6 +63,8 @@ class LoanApplication(Base):
     status = Column(Enum(LoanStatus), default=LoanStatus.INITIATED, nullable=False)
     rejection_reason = Column(Text, nullable=True)
 
+    bank_id = Column(Integer, ForeignKey("user_bank_details.id"), nullable=True)
+    
     # --- Metadata ---
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

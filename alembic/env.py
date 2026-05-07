@@ -1,5 +1,5 @@
 from logging.config import fileConfig
-from app.models import user_model, loan_application_model, user_profile_model
+from app.models import user_model, loan_application_model, user_profile_model,bank_details_model
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from app.database import Base
