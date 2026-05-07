@@ -12,6 +12,10 @@ class TransactionType(str, enum.Enum):
     REPAYMENT = "REPAYMENT"
     REFUND = "REFUND"
 
+class TransactionStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    SUCCESS = "SUCCESS"
+    FAILED = "FAILED"
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -20,7 +24,7 @@ class Transaction(Base):
     loan_id = Column(Integer, ForeignKey("loan_applications.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
     bank_id = Column(Integer, ForeignKey("user_bank_details.id"))
-
+    status = Column(Enum(TransactionStatus), default=TransactionStatus.PENDING)
     amount = Column(Numeric(12, 2), nullable=False)
     transaction_type = Column(Enum(TransactionType), nullable=False)
     reference_id = Column(String, unique=True)

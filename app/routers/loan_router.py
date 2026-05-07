@@ -10,7 +10,7 @@ from typing import Annotated
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends,HTTPException 
 from app.models.bank_details_model import UserBankDetails, VerificationStatus
-from app.models.transaction_model import TransactionType
+from app.models.transaction_model import TransactionStatus, TransactionType
 from app.models.user_profile_model import UserProfile,KYCStatus
 from app.models.loan_application_model import LoanApplication
 from app.models.user_model import UserRole
@@ -20,6 +20,7 @@ from app.enums.loan_enums import  LoanStatus
 from datetime import datetime
 
 from app.services.loan_services import process_loan_logic
+from app.services.repayment_service import generate_repayment_schedule
 
 router=APIRouter(
     prefix='/loans',
@@ -352,6 +353,7 @@ def disburse_loan(
         loan_id=loan.id,
         user_id=loan.user_id,
         amount=loan.approved_amount,
+        status=TransactionStatus.SUCCESS,
         transaction_type=TransactionType.DISBURSEMENT,
         reference_id="TXN_" + str(uuid.uuid4())[:8]
     )
@@ -360,6 +362,7 @@ def disburse_loan(
 
     # Update loan
     loan.status = LoanStatus.DISBURSED
+    generate_repayment_schedule(loan, db)
 
     db.commit()
 
