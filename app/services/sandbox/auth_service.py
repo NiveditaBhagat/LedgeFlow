@@ -1,6 +1,9 @@
 import requests
 
-from app.core.config import settings
+from app.core.config import SANDBOX_API_KEY, SANDBOX_API_SECRET, SANDBOX_BASE_URL
+
+
+
 
 
 class SandboxKYCProvider:
@@ -8,17 +11,23 @@ class SandboxKYCProvider:
     @staticmethod
     def get_access_token():
 
-        url = f"{settings.SANDBOX_BASE_URL}/authenticate"
+        url = f"{SANDBOX_BASE_URL}/authenticate"
 
-        payload = {
-            "apiKey": settings.SANDBOX_API_KEY,
-            "apiSecret": settings.SANDBOX_API_SECRET
+        headers = {
+            "x-api-key": SANDBOX_API_KEY,
+            "x-api-secret": SANDBOX_API_SECRET,
+            "x-api-version": "1.0"
         }
 
-        response = requests.post(url, json=payload)
+        response = requests.post(
+            url,
+            headers=headers
+        )
 
-        if response.status_code != 200:
-            raise Exception("Sandbox authentication failed")
+        print(response.status_code)
+        print(response.text)
+
+        response.raise_for_status()
 
         data = response.json()
 

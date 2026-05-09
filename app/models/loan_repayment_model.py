@@ -2,10 +2,10 @@
 
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, func,Enum
-
+from enum import Enum as PyEnum
 from app.database import Base
 
-class EMIStatus(str, Enum):
+class EMIStatus(str, PyEnum):
     PENDING = "PENDING"
     PAID = "PAID"
     OVERDUE = "OVERDUE"

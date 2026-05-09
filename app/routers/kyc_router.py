@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends,HTTPException 
 from app.models.user_profile_model import UserProfile,KYCStatus
 from app.models.user_model import User,UserRole
-from app.services.kyc_service import mock_verify_pan
-
+from app.services.kyc_service import KYCService
+from app.services.sandbox.auth_service import SandboxKYCProvider
+from app.services.mock_kyc_service import MockKYCProvider
 
 router=APIRouter(
     prefix='/kyc',
@@ -38,9 +39,23 @@ async def verify_kyc(user_id: int,db:db_dependency, current_user:user_dependency
     if profile.kyc_status == KYCStatus.REJECTED:
         return {"message": "KYC already rejected. Please update details."}
     
-    result = mock_verify_pan(profile.pan_number)
+    result = KYCService.verify_pan(
+    pan_number=profile.pan_number,
+    full_name=profile.full_name,
+    dob=profile.date_of_birth.strftime("%d/%m/%Y")
+    )
 
-    if result["status"] == "VALID":
+    print(result)
+    data = result.get("data", {})
+
+    # Verification checks
+    is_verified = (
+        data.get("status") == "valid"
+        and data.get("name_as_per_pan_match") is True
+        and data.get("date_of_birth_match") is True
+    )
+    
+    if is_verified:
         profile.kyc_status = KYCStatus.VERIFIED
     else:
         profile.kyc_status = KYCStatus.REJECTED
@@ -55,3 +70,11 @@ async def verify_kyc(user_id: int,db:db_dependency, current_user:user_dependency
     }
 
 
+@router.get("/sandbox-auth-test")
+def sandbox_auth_test():
+
+    token = SandboxKYCProvider.get_access_token()
+
+    return {
+        "access_token": token
+    }
