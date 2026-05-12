@@ -70,11 +70,11 @@ async def verify_kyc(user_id: int,db:db_dependency, current_user:user_dependency
     }
 
 
-@router.get("/sandbox-auth-test")
-def sandbox_auth_test():
+# @router.get("/sandbox-auth-test")
+# def sandbox_auth_test():
 
-    token = SandboxKYCProvider.get_access_token()
+#     token = SandboxKYCProvider.get_access_token()
 
-    return {
-        "access_token": token
-    }
+#     return {
+#         "access_token": token
+#     }
