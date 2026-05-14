@@ -132,7 +132,7 @@ async def upload_document(
         if existing_doc:
             # Soft delete: Deactivate the old version
             existing_doc.is_active = False 
-            # Optional: Move status to 'ARCHIVED' or similar if you add that enum
+            
         
         # Save the physical file
         with file_path.open("wb") as buffer:
