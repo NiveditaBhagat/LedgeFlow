@@ -21,6 +21,7 @@ class UserDocument(Base):
     is_active = Column(Boolean, default=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    remarks=Column(String, nullable=True)
 
     __table_args__ = (
         # Guardrail: Only one active document of a specific type per user

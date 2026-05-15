@@ -1,5 +1,5 @@
 import shutil
-from typing import Annotated
+from typing import Annotated, List
 import uuid
 from pathlib import Path
 from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException
@@ -8,10 +8,12 @@ from sqlalchemy.orm import Session
 from app.core.security import get_current_user
 from app.database import get_db
 from app.enums.doc_enums import DocumentStatus, DocumentType
+from app.enums.loan_enums import LoanStatus
 from app.models.document_model import UserDocument
 from app.models.loan_application_model import LoanApplication
 from app.models.user_model import UserRole
 from app.models.user_profile_model import KYCStatus, UserProfile
+from app.schemas.doc_upload_schema import DocumentReviewRequest, DocumentUploadResponse
 
 router=APIRouter(
     prefix='/docs',
@@ -112,6 +114,12 @@ async def upload_document(
             status_code=400,
             detail="Apply for loan first"
             )
+        
+        if loan.status not in [LoanStatus.INITIATED, LoanStatus.UNDER_REVIEW]:
+            raise HTTPException(
+            status_code=400,
+            detail="Documents cannot be uploaded at this stage"
+            )
    
     
     #  Check if a document of this type already exists and is active
@@ -166,3 +174,169 @@ async def upload_document(
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
     finally:
         file.file.close()
+
+
+
+
+
+@router.get("/my_docs",response_model=List[DocumentUploadResponse])
+async def get_my_documents(db: db_dependency, current_user: user_dependency):
+    if current_user.role!=UserRole.BORROWER:
+        raise HTTPException(
+            status_code=403, 
+            detail="Access denied: This endpoint is for borrowers only."
+        )
+    
+    docs = db.query(UserDocument).filter(
+        UserDocument.user_id == current_user.id,
+        UserDocument.is_active == True
+    ).all()
+
+    return docs
+
+
+
+
+@router.get("/{user_id}/documents", response_model=List[DocumentUploadResponse])
+async def get_user_documents(db: db_dependency, current_user: user_dependency, user_id: int):
+    if current_user.role not in [UserRole.ADMIN, UserRole.OPS]:
+        raise HTTPException(
+            status_code=403, 
+            detail="Forbidden: Admin or Ops access required"
+        )
+    
+    docs = db.query(UserDocument).filter(
+        UserDocument.user_id == user_id,
+        UserDocument.is_active == True
+    ).order_by(
+        UserDocument.created_at.desc()  # Then most recent first
+    ).all()
+
+    if not docs:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"No active documents found for user {user_id}"
+        )
+
+    return docs
+
+
+@router.patch("/{doc_id}/review")
+async def review_document( review_data: DocumentReviewRequest,db: db_dependency,current_user: user_dependency,doc_id:int):
+    if current_user.role not in [UserRole.ADMIN, UserRole.OPS]:
+        raise HTTPException(status_code=403, detail="Forbidden: Admin or Ops access required")
+    
+    doc = db.query(UserDocument).filter(
+        UserDocument.id == doc_id, 
+        UserDocument.is_active==True).first()
+    
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    doc.status = review_data.status
+    doc.remarks = review_data.remarks
+
+    db.commit()
+    return {"message": f"Document status updated to {review_data.status}"}
+
+
+
+
+@router.delete("/{document_id}")
+async def deactivate_document(
+    document_id: int,
+    db: db_dependency,
+    current_user: user_dependency
+):
+
+    document = db.query(UserDocument).filter(
+        UserDocument.id == document_id,
+        UserDocument.is_active == True
+    ).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+
+    profile=db.query(UserProfile).filter(UserProfile.user_id==current_user.id).first()
+    # BORROWER ACCESS
+    if current_user.role == UserRole.BORROWER:
+
+        # borrower can access only own docs
+        if document.user_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not allowed"
+            )
+
+ 
+        # KYC DOCUMENTS
+        if document.document_type in KYC_DOCS:
+
+            # once kyc verified -> locked
+            if profile.kyc_status==KYCStatus.VERIFIED:
+                raise HTTPException(
+                    status_code=400,
+                    detail="KYC documents are locked after verification"
+                )
+
+            # only rejected docs can be replaced
+            if document.status != DocumentStatus.REJECTED:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Only rejected KYC documents can be deactivated"
+                )
+
+  
+        # LOAN DOCUMENTS
+        else:
+
+            loan = db.query(LoanApplication).filter(
+                LoanApplication.user_id == current_user.id
+            ).first()
+
+            if not loan:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Loan application not found"
+                )
+
+            # only editable in early stages
+            if loan.status not in [
+                LoanStatus.INITIATED,
+                LoanStatus.UNDER_REVIEW
+            ]:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Loan documents are locked at this stage"
+                )
+
+            # only rejected docs can be changed
+            if document.status != DocumentStatus.REJECTED:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Only rejected loan documents can be deactivated"
+                )
+
+   
+    # ADMIN / OPS ACCESS
+    elif current_user.role not in [
+        UserRole.ADMIN,
+        UserRole.OPS
+    ]:
+        raise HTTPException(
+            status_code=403,
+            detail="Not allowed"
+        )
+
+  
+    # DEACTIVATE DOCUMENT
+    document.is_active = False
+
+    db.commit()
+
+    return {
+        "message": "Document deactivated successfully"
+    }
