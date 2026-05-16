@@ -9,14 +9,16 @@ from datetime import timedelta
 from typing import Annotated
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends,HTTPException 
+from app.enums.doc_enums import REQUIRED_DOCS, DocumentStatus, DocumentType
 from app.models.bank_details_model import UserBankDetails, VerificationStatus
+from app.models.document_model import UserDocument
 from app.models.transaction_model import TransactionStatus, TransactionType
 from app.models.user_profile_model import UserProfile,KYCStatus
 from app.models.loan_application_model import LoanApplication
 from app.models.user_model import UserRole
 from app.schemas.loan_schema import LoanApplicationRequest,LoanApplyResponse, LoanResponse, LoanSummaryResponse
 from starlette import status
-from app.enums.loan_enums import  LoanStatus
+from app.enums.loan_enums import  LoanStatus, LoanType
 from datetime import datetime
 
 from app.services.loan_services import process_loan_logic
@@ -225,6 +227,52 @@ def process_loan(
     loan = db.query(LoanApplication).filter(
         LoanApplication.id == loan_id
     ).first()
+
+   
+
+       
+    required_docs = REQUIRED_DOCS.get(
+    loan.loan_type,
+    []
+    )
+        
+    
+    documents = db.query(UserDocument).filter(
+    UserDocument.user_id == loan.user_id,
+    UserDocument.is_active == True
+    ).all()
+    
+    #  lookup map
+    doc_map = {
+    doc.document_type: doc
+    for doc in documents
+    }
+
+    for doc_type in required_docs:
+
+        document = doc_map.get(doc_type)
+
+        if not document:
+            raise HTTPException(
+            status_code=400,
+            detail=f"{doc_type.value} not uploaded"
+        )
+
+        if document.status == DocumentStatus.REJECTED:
+            raise HTTPException(
+            status_code=400,
+            detail=f"{doc_type.value} rejected"
+        )
+
+        if document.status in [
+            DocumentStatus.UPLOADED,
+            DocumentStatus.UNDER_REVIEW
+        ]:
+            raise HTTPException(
+            status_code=400,
+            detail=f"{doc_type.value} verification pending"
+            )
+
 
     if not loan:
         raise HTTPException(404, "Loan not found")

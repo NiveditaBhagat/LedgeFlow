@@ -4,6 +4,8 @@ from datetime import timedelta
 from typing import Annotated
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends,HTTPException 
+from app.enums.doc_enums import DocumentStatus, DocumentType
+from app.models.document_model import UserDocument
 from app.models.user_profile_model import UserProfile,KYCStatus
 from app.models.user_model import User,UserRole
 from app.services.kyc_service import KYCService
@@ -33,18 +35,76 @@ async def verify_kyc(user_id: int,db:db_dependency, current_user:user_dependency
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
     
+    if profile.kyc_status == KYCStatus.PENDING:
+        return {"message": "KYC verification is in progress. Please check back late. "}
+    
     if profile.kyc_status == KYCStatus.VERIFIED:
         return {"message": "KYC already verified"}
     
     if profile.kyc_status == KYCStatus.REJECTED:
         return {"message": "KYC already rejected. Please update details."}
     
+
+    pan_doc = db.query(UserDocument).filter(
+    UserDocument.user_id == current_user.id,
+    UserDocument.document_type == DocumentType.PAN,
+    UserDocument.status == DocumentStatus.VERIFIED,
+    UserDocument.is_active == True
+    ).first()
+
+    
+
+    aadhaar_doc = db.query(UserDocument).filter(
+        UserDocument.user_id == user_id,
+        UserDocument.document_type == DocumentType.AADHAR,
+        UserDocument.status == DocumentStatus.VERIFIED,
+        UserDocument.is_active == True
+    ).first()
+
+    if not pan_doc or not aadhaar_doc:
+        raise HTTPException(
+            status_code=400,
+            detail="PAN and AADHAR documents are required"
+        )
+    
+    if pan_doc.status == DocumentStatus.REJECTED:
+        raise HTTPException(
+            status_code=400,
+            detail="PAN document rejected"
+        )
+
+    if pan_doc.status in [
+        DocumentStatus.UPLOADED,
+        DocumentStatus.UNDER_REVIEW
+    ]:
+        raise HTTPException(
+            status_code=400,
+            detail="PAN document verification pending"
+        )
+    
+    if aadhaar_doc.status == DocumentStatus.REJECTED:
+        raise HTTPException(
+            status_code=400,
+            detail="AADHAAR document rejected"
+        )
+
+    if aadhaar_doc.status in [
+        DocumentStatus.UPLOADED,
+        DocumentStatus.UNDER_REVIEW
+    ]:
+        raise HTTPException(
+            status_code=400,
+            detail="AADHAAR document verification pending"
+        )
+
     result = KYCService.verify_pan(
     pan_number=profile.pan_number,
     full_name=profile.full_name,
     dob=profile.date_of_birth.strftime("%d/%m/%Y")
     )
 
+   
+    
     print(result)
     data = result.get("data", {})
 

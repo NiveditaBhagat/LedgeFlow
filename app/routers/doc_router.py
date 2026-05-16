@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user
 from app.database import get_db
-from app.enums.doc_enums import DocumentStatus, DocumentType
+from app.enums.doc_enums import DOCUMENT_REVIEW_ACCESS, DocumentStatus, DocumentType
 from app.enums.loan_enums import LoanStatus
 from app.models.document_model import UserDocument
 from app.models.loan_application_model import LoanApplication
@@ -221,23 +221,58 @@ async def get_user_documents(db: db_dependency, current_user: user_dependency, u
     return docs
 
 
+
 @router.patch("/{doc_id}/review")
-async def review_document( review_data: DocumentReviewRequest,db: db_dependency,current_user: user_dependency,doc_id:int):
-    if current_user.role not in [UserRole.ADMIN, UserRole.OPS]:
-        raise HTTPException(status_code=403, detail="Forbidden: Admin or Ops access required")
-    
+async def review_document(
+    review_data: DocumentReviewRequest,
+    db: db_dependency,
+    current_user: user_dependency,
+    doc_id: int
+):
+
     doc = db.query(UserDocument).filter(
-        UserDocument.id == doc_id, 
-        UserDocument.is_active==True).first()
-    
+        UserDocument.id == doc_id,
+        UserDocument.is_active == True
+    ).first()
+
     if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
-    
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+
+    # role access check
+    allowed_roles = DOCUMENT_REVIEW_ACCESS.get(
+        doc.document_type,
+        []
+    )
+
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not allowed to review this document"
+        )
+
+    # prevent reviewing already verified docs
+    if doc.status == DocumentStatus.VERIFIED:
+        raise HTTPException(
+            status_code=400,
+            detail="Document already verified"
+        )
+
     doc.status = review_data.status
     doc.remarks = review_data.remarks
 
     db.commit()
-    return {"message": f"Document status updated to {review_data.status}"}
+    db.refresh(doc)
+
+    return {
+        "message": f"Document status updated to {review_data.status}",
+        "document_id": doc.id,
+        "document_type": doc.document_type,
+        "status": doc.status,
+        "remarks": doc.remarks
+    }
 
 
 

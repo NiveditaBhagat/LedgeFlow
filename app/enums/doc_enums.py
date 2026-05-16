@@ -1,5 +1,6 @@
 from enum import Enum
 
+from app.enums.loan_enums import LoanType
 from app.models.user_model import UserRole
 
 class DocumentType(str, Enum):
@@ -49,5 +50,24 @@ DOCUMENT_REVIEW_ACCESS = {
     DocumentType.VEHICLE_RC: [
         UserRole.ADMIN,
         UserRole.OPS
+    ]
+}
+
+
+REQUIRED_DOCS = {
+    LoanType.PERSONAL: [
+        DocumentType.SALARY_SLIP,
+        DocumentType.BANK_STATEMENT
+    ],
+
+    LoanType.HOME: [
+        DocumentType.PROPERTY_DOC,
+        DocumentType.BANK_STATEMENT,
+        DocumentType.SALARY_SLIP
+    ],
+
+    LoanType.VEHICLE: [
+        DocumentType.VEHICLE_RC,
+        DocumentType.BANK_STATEMENT
     ]
 }
