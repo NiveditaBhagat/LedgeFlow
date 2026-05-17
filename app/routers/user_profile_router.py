@@ -93,3 +93,50 @@ def update_profile(
     db.refresh(db_profile)
 
     return db_profile
+
+
+
+@router.patch("/admin/users/{user_id}/deactivate")
+async def deactivate_user(db: db_dependency, current_user: user_dependency, user_id: int):
+
+    if current_user.role!=UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Access denied. Only ADMIN accounts can deactivate user.")
+    
+    user=db.query(User).filter(
+        User.id == user_id
+    ).first()
+    
+    if not user:
+        raise HTTPException(404, "User not found")
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=400,
+            detail="User already deactivated"
+        )
+    
+    user.is_active=False
+    db.commit()
+
+    return {"User with id f{user_id} is deactivated successfully"}
+
+
+@router.get("/admin/users")
+async def get_all_users(
+    db: db_dependency,
+    current_user: user_dependency
+):
+
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=403,
+            detail="Only ADMIN can access this endpoint"
+        )
+    
+
+    users = db.query(User).all()
+
+    if not users:
+        raise HTTPException(404, "Users not found")
+
+    return users

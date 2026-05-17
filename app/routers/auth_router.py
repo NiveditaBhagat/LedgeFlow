@@ -46,3 +46,5 @@ async def login_for_access_token(db: db_dependency,login_request: auth_schema.Us
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token=create_access_token(user.email,user.id,user.role,timedelta(minutes=60))
     return{'access_token':token,'token_type':'bearer'}
+
+
