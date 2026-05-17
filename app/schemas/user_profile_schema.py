@@ -5,6 +5,8 @@ from decimal import Decimal
 from datetime import date, datetime
 from enum import Enum
 
+from app.models.user_model import UserRole
+
 
 # Enums
 class KYCStatus(str, Enum):
@@ -105,4 +107,7 @@ class UserProfileUpdate(BaseModel):
 
         return values
 
+
+class UpdateUserRoleRequest(BaseModel):
+    role: UserRole
     
