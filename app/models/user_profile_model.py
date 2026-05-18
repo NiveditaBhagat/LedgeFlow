@@ -19,6 +19,9 @@ class EmploymentType(str, enum.Enum):
     SELF_EMPLOYED = "SELF_EMPLOYED"
 
 
+
+
+
 class UserProfile(Base):
     __tablename__ = "user_profiles"
 
