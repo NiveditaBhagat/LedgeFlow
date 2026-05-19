@@ -52,12 +52,73 @@ class UserProfileBase(BaseModel):
     address_line_2: Optional[str] = None
     city: str
     state: str
-    pincode: str
+    pincode: str = Field(..., pattern=r"^\d{6}$")
+
+
+    @model_validator(mode="after")
+    def validate_employment(self):
+
+        if (
+            self.employment_type == EmploymentType.SALARIED
+            and not self.organization_name
+            ):
+            raise ValueError(
+                "organization_name is required for salaried users"
+            )
+
+        return self
+
     # Ensure PAN is uppercase
     @field_validator("pan_number")
     @classmethod
     def uppercase_pan(cls, v: str):
         return v.upper()
+
+
+    @field_validator("date_of_birth")
+    @classmethod
+    def validate_age(cls, v: date):
+
+        today = date.today()
+
+        age = (
+            today.year
+            - v.year
+            - ((today.month, today.day) < (v.month, v.day))
+        )
+
+        if age < 18:
+            raise ValueError(
+                "User must be at least 18 years old"
+            )
+
+        return v
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "full_name": "Rahul Sharma",
+                "mobile": "9876543210",
+                "date_of_birth": "1998-05-12",
+                "pan_number": "ABCDE1234F",
+                "aadhaar_number": "123456789012",
+                "employment_type": "SALARIED",
+                "organization_name": "Infosys",
+                "monthly_income": 75000,
+                "existing_monthly_obligations": 12000,
+                "address_line_1": "221B MG Road",
+                "address_line_2": "Near Metro Station",
+                "city": "Jaipur",
+                "state": "Rajasthan",
+                "pincode": "302001"
+            }
+        }
+    }
+
+
+
+
+
 
 
 # Schema for Creating Profile (Request)

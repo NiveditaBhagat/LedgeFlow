@@ -36,6 +36,8 @@ user_dependency=Annotated[dict,Depends(get_current_user)]
 @router.post("/apply",status_code=status.HTTP_201_CREATED)
 async def apply_loan( loan_request: LoanApplicationRequest,db: db_dependency,current_user:user_dependency):
 
+   
+
     if current_user.role != UserRole.BORROWER:
         raise HTTPException(
             status_code=403,
@@ -47,6 +49,15 @@ async def apply_loan( loan_request: LoanApplicationRequest,db: db_dependency,cur
             status_code=400, detail="Consent is required to proceed"
         )
     
+    user_profile= db.query(UserProfile).filter(
+       UserProfile.user_id == current_user.id
+    ).all()
+    
+    if not user_profile or user_profile.kyc_status!=KYCStatus.VERIFIED:
+         raise HTTPException(
+            status_code=403, detail="Loan application blocked. Please complete your KYC verification first."
+        )
+
     loan = LoanApplication(
         user_id=current_user.id,
 
