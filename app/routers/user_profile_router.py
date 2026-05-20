@@ -4,6 +4,8 @@ from datetime import timedelta
 from typing import Annotated
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends,HTTPException 
+from app.enums.loan_enums import LoanStatus
+from app.models.loan_application_model import LoanApplication
 from app.models.user_profile_model import UserProfile,KYCStatus
 from app.models.user_model import User,UserRole
 from app.schemas.user_profile_schema import UpdateUserRoleRequest, UserProfileCreate,UserProfileResponse, UserProfileUpdate
@@ -57,41 +59,54 @@ async def get_user_profile(db: db_dependency, current_user: user_dependency):
     return profile
 
 
+
 @router.patch("/update")
 def update_profile(
     profile_data: UserProfileUpdate,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    if current_user.role !=UserRole.BORROWER:
-        raise HTTPException(status_code=403, detail="Access denied. Only BORROWER accounts can update a profile.")
+    if current_user.role != UserRole.BORROWER:
+        raise HTTPException(status_code=403, detail="Access denied.")
     
-    db_profile = db.query(UserProfile).filter(
-        UserProfile.user_id == current_user.id
-    ).first()
+    #  Get the data sent in the request
+    update_data = profile_data.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields provided for update")
 
+    # Check for active loans ONLY if sensitive fields are being touched
+    kyc_sensitive_fields = {"full_name", "date_of_birth", "address_line_1", "pincode", "city", "state"}
+    changing_sensitive_data = any(field in update_data for field in kyc_sensitive_fields)
+
+    if changing_sensitive_data:
+        has_active_loan = db.query(LoanApplication).filter(
+            LoanApplication.user_id == current_user.id, 
+            LoanApplication.status.in_([
+                LoanStatus.INITIATED, 
+                LoanStatus.UNDER_REVIEW, 
+                LoanStatus.APPROVED
+            ])
+        ).first()
+        
+        if has_active_loan:
+           
+            raise HTTPException(status_code=400, detail="Cannot update identity details while a loan is active.")
+
+    # Fetch the profile
+    db_profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
     if not db_profile:
         raise HTTPException(404, "Profile not found")
 
-    update_data = profile_data.model_dump(exclude_unset=True)
-
-
-
+    # Apply the updates (Crucial: You commented this out!)
     for key, value in update_data.items():
         setattr(db_profile, key, value)
 
-    # if any(field in update_data for field in kyc_sensitive_fields):
-    #     # Only reset if it was previously VERIFIED to avoid unnecessary updates
-    #     if db_profile.kyc_status == KYCStatus.VERIFIED:
-    #         db_profile.kyc_status = KYCStatus.PENDING 
-
-    #  Reset KYC if ANY update happens
-    if update_data and db_profile.kyc_status == KYCStatus.VERIFIED:
-        db_profile.kyc_status = KYCStatus.PENDING
+    # 5. Set status to pending if sensitive fields were changed
+    if changing_sensitive_data:
+        db_profile.kyc_status = KYCStatus.PENDING 
 
     db.commit()
     db.refresh(db_profile)
-
     return db_profile
 
 
