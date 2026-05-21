@@ -170,6 +170,7 @@ class UserProfileUpdate(BaseModel):
 
         return values
     
+    
     @field_validator("date_of_birth")
     @classmethod
     def validate_dob(cls, v: date):

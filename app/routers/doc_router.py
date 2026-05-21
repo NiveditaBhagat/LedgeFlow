@@ -134,6 +134,7 @@ async def upload_document(
     user_folder = Path(UPLOAD_DIR) / str(current_user.id)
     user_folder.mkdir(parents=True, exist_ok=True)
     file_path = user_folder / unique_filename
+    relative_db_path = f"uploads/{current_user.id}/{unique_filename}"
 
     try:
         
@@ -151,7 +152,7 @@ async def upload_document(
             user_id=current_user.id,
             document_type=document_type,
             file_name=file.filename,
-            file_path=str(file_path),
+            file_path=relative_db_path,#str(file_path),
             is_active=True, # This is the current one
             status=DocumentStatus.UPLOADED
         )
@@ -267,7 +268,7 @@ async def review_document(
     db.refresh(doc)
 
     return {
-        "message": f"Document status updated to {review_data.status}",
+        "message": f"Document status updated to {review_data.status.value}",
         "document_id": doc.id,
         "document_type": doc.document_type,
         "status": doc.status,

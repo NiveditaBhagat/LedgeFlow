@@ -7,9 +7,7 @@ class MockKYCProvider:
         full_name: str,
         dob: str
     ):
-
         
-
         if pan_number.startswith("D"):
 
             return {

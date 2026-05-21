@@ -26,7 +26,7 @@ async def verify_kyc(user_id: int,db:db_dependency, current_user:user_dependency
 
       #  Only CREDIT / OPS allowed
     if current_user.role not in [UserRole.ADMIN, UserRole.OPS]:
-        raise HTTPException(status_code=403, detail="Not authorized")
+        raise HTTPException(status_code=403, detail="Not authorized.")
     
     profile = db.query(UserProfile).filter(
         UserProfile.user_id == user_id
@@ -35,8 +35,8 @@ async def verify_kyc(user_id: int,db:db_dependency, current_user:user_dependency
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
     
-    if profile.kyc_status == KYCStatus.PENDING:
-        return {"message": "KYC verification is in progress. Please check back late. "}
+    # if profile.kyc_status == KYCStatus.PENDING:
+    #     return {"message": "KYC verification is in progress. Please check back late. "}
     
     if profile.kyc_status == KYCStatus.VERIFIED:
         return {"message": "KYC already verified"}
@@ -46,7 +46,7 @@ async def verify_kyc(user_id: int,db:db_dependency, current_user:user_dependency
     
 
     pan_doc = db.query(UserDocument).filter(
-    UserDocument.user_id == current_user.id,
+    UserDocument.user_id == user_id,
     UserDocument.document_type == DocumentType.PAN,
     UserDocument.status == DocumentStatus.VERIFIED,
     UserDocument.is_active == True

@@ -11,8 +11,11 @@ class KYCService:
     def verify_pan(pan_number: str,
         full_name: str,
         dob: str):
+        print(f"DEBUG: Current KYC_PROVIDER is: '{KYC_PROVIDER}'")
 
         if KYC_PROVIDER == "sandbox":
             return SandboxPANService.verify_pan(pan_number,full_name,dob)
+        else:
+            return MockKYCProvider.verify_pan(pan_number,full_name,dob)
 
-        return MockKYCProvider.mock_verify_pan(pan_number,full_name,dob)
+        
